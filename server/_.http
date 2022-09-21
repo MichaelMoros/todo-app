@@ -1,0 +1,31 @@
+GET http://localhost:5000/1
+
+####
+POST http://localhost:5000/1/token
+Content-Type: application/json
+
+{
+    "requireauth": true,
+    "password": "poop12",
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXRoIjoiMTEyMjMzIiwiaWF0IjoxNjYzNzA4OTk4LCJleHAiOjE2NjM3MTI1OTh9.QT12dB4-Old9XlJ927oOFhcuL-iK7KSbVQRxdOgQTsM"
+}
+
+### 2
+POST http://localhost:5000/wwww/todo
+Content-Type: application/json
+
+{
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXRoIjoid3d3dyIsImlhdCI6MTY2MzY2NDA2MiwiZXhwIjoxNjYzNjY3NjYyfQ.ha5w_fdzEm6ZT-lC2UB6cft2L1giIAxenPHE0Y8mxw8",
+    "text": "Test",
+    "completed": false
+}
+
+
+### 3
+PUT http://localhost:5000/2/todo/30
+Content-Type: application/json
+
+{
+    "text": "heel",
+    "completed": false
+}
