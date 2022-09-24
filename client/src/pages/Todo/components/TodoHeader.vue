@@ -33,7 +33,6 @@ export default {
                         accessToken: this.accessToken
                     }
 
-                    console.log(payload, 'payload')
                     const endpoint = API_ROUTE + '/' + this.path;
 
                     this.isProcessing = true
@@ -49,12 +48,15 @@ export default {
                     const { data, error } = response
 
                     if (error) throw error
+
+                    const accessToken = data?.accessToken || null
                     this.isProcessing = false
                     this.isOpen = false
                     this.todo_password.password = ''
                     this.todo_password.error = null
-                    this.$emit('update-requireauth-state', bool)
+                    this.$emit('update-requireauth-state', bool, accessToken)
                 } catch (error) {
+                    this.isOpen = false
                     this.isProcessing = false
                     if (error.message !== 'Password field is required.') return
                     else alert(error.message)

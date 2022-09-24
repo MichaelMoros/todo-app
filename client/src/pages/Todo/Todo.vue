@@ -10,9 +10,9 @@ import { getBoolValue } from '../../helpers/helpers'
 
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+dayjs.extend(relativeTime);
 const getRelativeTime = (dateA) => dayjs(dateA).fromNow()
 
-dayjs.extend(relativeTime);
 
 const FILTER_TYPES = ['all', 'active', 'completed']
 const API_ROUTE = import.meta.env.VITE_BASE_URL
@@ -42,7 +42,7 @@ export default {
     mounted() {
         this.fetchData()
         this.interval = setInterval(() => {
-            if (this.data && this.data.todos.length > 0) {
+            if (this.data && this.data.todos) {
                 this.data.todos = this.data.todos.map((todo) => {
                     todo.relativeTime = getRelativeTime(todo.created_at)
                     return todo
@@ -66,13 +66,15 @@ export default {
         handleChangeTodoName(e) {
             this.todoName = e.target.value
         },
-        updateRequireAuthState(val) {
+        updateRequireAuthState(val, accessToken) {
             const bool = getBoolValue(val)
             this.data.requireauth = bool
+            this.accessToken = accessToken
         },
         async fetchData() {
             try {
-                const response = await fetch(API_ROUTE + '/' + this.$route.params.path)
+                const endpoint = API_ROUTE + '/' + this.$route.params.path
+                const response = await fetch(endpoint)
                 const responseData = await response.json()
                 const { data, error } = responseData
 
@@ -92,7 +94,6 @@ export default {
 
                 this.selectedFilter = 'all'
             } catch (e) {
-                console.log('e =>', e)
                 this.data = null
                 this.loading = false
                 this.error = e
@@ -220,7 +221,7 @@ export default {
                 const record = {
                     path: data.path,
                     todos: data.todos.map((todo) => {
-                        todo.relativeTime = getRelativeTime(todo.created)
+                        todo.relativeTime = getRelativeTime(todo.created_at)
                         return todo
                     }),
                     requireauth: data.requireauth
@@ -264,7 +265,7 @@ export default {
     </div>
     <div
         v-else-if="data === null && loading === false && (error.code !== 401 || error.code !== 403 || error.code >= 500)">
-        <Error :code="error.code" :messsage="error.message" />
+        <Error :code="error.code" :message="error.message" />
     </div>
     <div v-else class="container mx-auto mt-6">
         <TodoHeader :path="this.data.path" :authConfig="this.data.requireauth" :accessToken="accessToken"
