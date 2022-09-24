@@ -1,31 +1,32 @@
-GET http://localhost:5000/1
+GET http://localhost:5000/tes1
 
 ####
-POST http://localhost:5000/1/token
+POST http://localhost:5000/445566/token
 Content-Type: application/json
 
 {
     "requireauth": true,
-    "password": "poop12",
+    "password": "445566",
     "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXRoIjoiMTEyMjMzIiwiaWF0IjoxNjYzNzA4OTk4LCJleHAiOjE2NjM3MTI1OTh9.QT12dB4-Old9XlJ927oOFhcuL-iK7KSbVQRxdOgQTsM"
 }
 
 ### 2
-POST http://localhost:5000/wwww/todo
+POST http://localhost:5000/445566
 Content-Type: application/json
 
 {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXRoIjoid3d3dyIsImlhdCI6MTY2MzY2NDA2MiwiZXhwIjoxNjYzNjY3NjYyfQ.ha5w_fdzEm6ZT-lC2UB6cft2L1giIAxenPHE0Y8mxw8",
-    "text": "Test",
-    "completed": false
+    "requireauth": false,
+    "password": "",
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXRoIjoiNDQ1NTY2IiwiaWF0IjoxNjY0MDA3MzM2LCJleHAiOjE2NjQwMTA5MzZ9.AqfIhX-PBn7ie9J3EmjX35VXKeCRr2CcK4ufUXm39ks"
 }
 
 
 ### 3
-PUT http://localhost:5000/2/todo/30
+DELETE http://localhost:5000/wwww1/todo/33
 Content-Type: application/json
 
 {
     "text": "heel",
-    "completed": false
+    "completed": true
 }
+

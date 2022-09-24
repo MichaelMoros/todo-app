@@ -11,6 +11,7 @@ router
     .route('/:path')
     .get(PathValidator, MainController.createOrViewTodo)
     .post(PathValidator, MainController.createPathOrUpdatePassword)
+    .delete(PathValidator, MainController.deletePath)
 
 router
     .post('/:path/token', PathValidator, MainController.createPathToken)
