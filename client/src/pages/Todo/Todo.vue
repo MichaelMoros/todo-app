@@ -111,13 +111,14 @@ export default {
 
             try {
                 const endpoint = API_ROUTE + '/' + path + '/todo/' + todoId
-                const payload = { completed: !thisTodo.completed, accessToken: this.accessToken, path_id: path }
+                const payload = { completed: !thisTodo.completed, path_id: path }
 
                 await fetch(endpoint, {
                     method: 'PUT',
                     body: JSON.stringify(payload),
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': "Bearer " + this.accessToken
                     }
                 })
 
@@ -139,15 +140,17 @@ export default {
                 const thisTodo = this.data.todos.find((todo) => todo.id === todoId)
 
                 if (!thisTodo) return
+
                 const path = thisTodo.path_id
-                const payload = { accessToken: this.accessToken }
+
                 try {
                     const endpoint = API_ROUTE + '/' + path + '/todo/' + todoId
-                    await fetch(endpoint,
-                        {
-                            body: JSON.stringify(payload),
-                            method: 'DELETE'
-                        })
+                    await fetch(endpoint, {
+                        method: 'DELETE',
+                        headers: {
+                            "Authorization": "Bearer " + this.accessToken
+                        }
+                    })
                     this.data.todos = this.data.todos.filter((todo) => todo.id !== todoId)
                 } catch (error) {
                     alert(error.message)
@@ -174,8 +177,7 @@ export default {
             const todo = {
                 completed: false,
                 text: todoName,
-                path_id: currentPath,
-                accessToken: this.accessToken
+                path_id: currentPath
             }
 
             try {
@@ -184,7 +186,8 @@ export default {
                     body: JSON.stringify(todo),
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + this.accessToken
                     }
                 })
 

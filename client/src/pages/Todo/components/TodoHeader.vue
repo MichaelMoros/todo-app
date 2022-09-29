@@ -29,8 +29,7 @@ export default {
 
                     const payload = {
                         requireauth: bool,
-                        password: this.todo_password.password,
-                        accessToken: this.accessToken
+                        password: this.todo_password.password
                     }
 
                     const endpoint = API_ROUTE + '/' + this.path;
@@ -40,7 +39,8 @@ export default {
                         method: 'POST',
                         body: JSON.stringify(payload),
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + this.accessToken
                         }
                     })
 
@@ -80,6 +80,9 @@ export default {
             if (this.todo_password.password.length === 0 && value.length > 0) {
                 this.todo_password.error = null;
             }
+        },
+        toggleVisibility() {
+            this.passwordVisibility = !this.passwordVisibility
         }
     },
     data() {
@@ -90,7 +93,8 @@ export default {
             todo_password: {
                 password: '',
                 error: null
-            }
+            },
+            passwordVisibility: false
         }
     },
     mounted() {
@@ -183,19 +187,51 @@ export default {
                                     </label>
                                 </li>
                             </ul>
-                            <div class="mb-6 mt-3" v-if="_authConfig === 'true' || _authConfig === true">
+
+                            <!-- Start -->
+                            <div v-if="_authConfig === 'true' || _authConfig === true" class="mb-5">
                                 <label for="default-input"
                                     class="block mb-2 text-lg font-medium text-gray-900 dark:text-white">
                                     Password
                                 </label>
-                                <input type="text" id="default-input" v-model="todo_password.password"
-                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                <div class="flex">
+                                    <div class="relative w-full">
+                                        <input :type="`${passwordVisibility ? 'text' : 'password'}`"
+                                            v-model="todo_password.password"
+                                            class="block p-2.5 w-full z-20 text-sm text-gray-900 bg-gray-50 rounded-l-lg rounded-r-lg border-l-gray-300 border-l-2 border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-blue-500"
+                                            placeholder="Password">
+                                        <button type="button" @click="toggleVisibility"
+                                            class="absolute top-0 right-0 p-2.5 text-sm font-medium text-white bg-blue-700 rounded-r-lg border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+
+
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="20"
+                                                v-if="passwordVisibility" fill="currentColor" class="bi bi-eye"
+                                                viewBox="0 0 16 16">
+                                                <path
+                                                    d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" />
+                                                <path
+                                                    d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" />
+                                            </svg>
+
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="20" v-else
+                                                fill="currentColor" class="bi bi-eye-slash" viewBox="0 0 16 16">
+                                                <path
+                                                    d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z" />
+                                                <path
+                                                    d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z" />
+                                                <path
+                                                    d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z" />
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                </div>
                                 <p class="mt-2 text-sm text-red-600 dark:text-red-500 font-medium"
                                     v-if="todo_password.error">
                                     {{ todo_password.error }}
                                 </p>
-
                             </div>
+                            <!-- End  -->
 
                             <button type="button" @click="closeModal"
                                 class="px-6 py-2 text-blue-800 border border-blue-600 rounded"

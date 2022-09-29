@@ -6,19 +6,19 @@ export default {
     },
     computed: {
         errorMessageHeader() {
-            return this.code === 400 ? 'Path not available' : 'Something went wrong'
+            return this.code === 400 ? 'Bad Request' : 'Something went wrong'
         },
         errorSubMesssage() {
-            return this.code === 400 ? 'Path must be between 1-10 characters only' : this.message
+            return this.code === 400 ? 'Password is required' : this.message
         },
         buttonText() {
-            return this.code === 400 ? 'Go Back' : 'Refresh Page'
+            return this.code === 400 ? 'Refresh Page' : 'Go back'
         }
     },
     methods: {
         routeTo() {
-            if (this.code === 400) this.$router.go(-1)
-            else this.$router.go()
+            if (this.code === 400) this.$router.go()
+            else this.$router.go(-1)
         }
     }
 }

@@ -3,6 +3,7 @@ const app = express()
 const cors = require('cors')
 require('dotenv').config()
 const TodoRouter = require('./routers/todoRouter')
+const ErrorHandler = require('./middlewares/errorHandler')
 
 const corsOptions = {
     origin: [process.env.CLIENT_SIDE_ADDRESS, process.env.CLIENT_SIDE_ADDRESS1],
@@ -13,15 +14,7 @@ const corsOptions = {
 app.use(cors(corsOptions))
 app.use(express.json())
 app.use('/', TodoRouter)
-app.use((err, req, res, next) => {
-    let code = res.statusCode ? res.statusCode : 500
-    return res.json({
-        error: {
-            code,
-            message: err.message
-        }
-    })
-})
+app.use(ErrorHandler)
 
 const PORT = process.env.PORT || 5000
 

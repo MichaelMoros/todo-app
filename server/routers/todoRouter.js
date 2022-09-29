@@ -1,27 +1,27 @@
 const express = require("express");
 const router = express.Router();
 const MainController = require('../controllers/mainController')
-const PathValidator = require('../middlewares/pathChecker')
-const TodoChecker = require('../middlewares/todoChecker')
+const ParamChecker = require('../middlewares/ParamChecker');
+const auth = require("../middlewares/auth");
 
 router
     .get('/', MainController.createRandomTodo)
 
 router
     .route('/:path')
-    .get(PathValidator, MainController.createOrViewTodo)
-    .post(PathValidator, MainController.createPathOrUpdatePassword)
-    .delete(PathValidator, MainController.deletePath)
+    .get(ParamChecker, auth, MainController.createOrViewTodo)
+    .post(ParamChecker, auth, MainController.createPathOrUpdatePassword)
+    .delete(ParamChecker, auth, MainController.deletePath)
 
 router
-    .post('/:path/token', PathValidator, MainController.createPathToken)
+    .post('/:path/token', ParamChecker, MainController.createPathToken)
 
 router
-    .post('/:path/todo', PathValidator, MainController.createPathAndTodoOrCreateTodo)
+    .post('/:path/todo', ParamChecker, auth, MainController.createPathAndTodoOrCreateTodo)
 
 router
     .route('/:path/todo/:todo_id')
-    .put(PathValidator, TodoChecker, MainController.updateTodo)
-    .delete(PathValidator, TodoChecker, MainController.deleteTodo)
+    .put(ParamChecker, auth, MainController.updateTodo)
+    .delete(ParamChecker, auth, MainController.deleteTodo)
 
 module.exports = router;

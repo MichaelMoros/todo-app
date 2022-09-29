@@ -1,5 +1,5 @@
 const pool = require('../db')
-const { generateJWT, generateEncryptedPassword, verifyEncryptedPassword, verifyJWT } = require('../helpers')
+const { generateJWT, generateEncryptedPassword, verifyEncryptedPassword } = require('../helpers')
 
 async function generateRandomPath() {
     let newPath = Math.random().toString(36).slice(2, 8)
@@ -40,7 +40,6 @@ exports.createRandomTodo = async (req, res, next) => {
 // @params  accessToken?<string>
 exports.createOrViewTodo = async (req, res, next) => {
     const currentPath = req.currentPath
-    const accessToken = req.body.accessToken || null
     const path = req.params.path
 
     // if path doesn't exist create a new one
@@ -72,24 +71,6 @@ exports.createOrViewTodo = async (req, res, next) => {
 
     // if path exist fetch all todos like to path
     if (currentPath) {
-        if (currentPath.requireauth) {
-            if (!accessToken) {
-                res.status(401)
-                const error = new Error('Unauthorized')
-                next(error)
-                return
-            }
-
-            const isValidAccessToken = await verifyJWT(accessToken, currentPath.path)
-
-            if (!isValidAccessToken) {
-                res.status(403)
-                const error = new Error('Forbidden')
-                next(error)
-                return
-            }
-        }
-
         try {
             const findTodosQuery = {
                 text: 'SELECT * FROM todos WHERE path_id = $1 ORDER BY created_at DESC',
@@ -106,7 +87,7 @@ exports.createOrViewTodo = async (req, res, next) => {
             })
         } catch (findTodosQueryError) {
             res.status(500)
-            const error = new Error(createPathQueryError.message)
+            const error = new Error(findTodosQueryError.message)
             next(error)
             return
         }
@@ -118,7 +99,6 @@ exports.createOrViewTodo = async (req, res, next) => {
 // @access  Private
 // @params  password<string>
 exports.createPathToken = async (req, res, next) => {
-    const path = req.params.path
     const password = req.body.password
     const currentPath = req.currentPath
 
@@ -146,13 +126,13 @@ exports.createPathToken = async (req, res, next) => {
         const isMatchingPassword = await verifyEncryptedPassword(password, currentPath.password)
 
         if (!isMatchingPassword) {
-            res.status(403)
-            const error = new Error('Forbidden')
+            res.status(401)
+            const error = new Error('Unauthorized')
             next(error)
             return
         }
 
-        const accessToken = await generateJWT(path)
+        const accessToken = await generateJWT(currentPath.path)
 
         try {
             const findTodosQuery = {
@@ -171,7 +151,7 @@ exports.createPathToken = async (req, res, next) => {
             })
         } catch (findTodosQueryError) {
             res.status(500)
-            const error = new Error(createPathQueryError.message)
+            const error = new Error(findTodosQueryError.message)
             next(error)
             return
         }
@@ -186,44 +166,52 @@ exports.createPathToken = async (req, res, next) => {
 //          accessToken?<string>
 //          requireauth?<boolean>
 exports.createPathOrUpdatePassword = async (req, res, next) => {
-    const password = req.body.password
+    const password = req.body.password || ""
     const path = req.params.path
-    const accessToken = req.body.accessToken
-    const requireauth = req.body.requireauth
+    const requireauth = req.body.requireauth || false
     const currentPath = req.currentPath
 
-    if (requireauth) {
-        if (!password || password?.length > 64) {
-            res.status(400)
-            const error = new Error('Either empty password or length > 64')
-            next(error)
-            return
-        }
-    }
-
-
     if (!currentPath) {
-        const encryptedPassword = await generateEncryptedPassword(password)
+        const pathPassword = await (async () => {
+            if (requireauth && (!password || password?.length > 64)) {
+                return null
+            }
+            else if (requireauth && password) {
+                return await generateEncryptedPassword(password)
+            }
+            else if (!requireauth) return null
+        })()
+
+        const requirePathAuth = Boolean(pathPassword)
 
         const createPathQuery = {
             text: "INSERT INTO paths(path, requireauth, password) VALUES ($1, $2, $3) RETURNING *",
-            values: [path, true, encryptedPassword]
+            values: [path, requirePathAuth, pathPassword]
         }
 
         try {
             const createPathQueryResult = await pool.query(createPathQuery)
             const newPath = createPathQueryResult.rows[0]
-            const accessToken = await generateJWT(path)
 
-            return res.json({
-                data: {
-                    path: newPath.path,
-                    requireauth: newPath.requireauth,
-                    accessToken,
-                    todos: []
-                }
-            })
-
+            if (requirePathAuth) {
+                const accessToken = await generateJWT(path)
+                return res.json({
+                    data: {
+                        path: newPath.path,
+                        requireauth: newPath.requireauth,
+                        accessToken,
+                        todos: []
+                    }
+                })
+            } else {
+                return res.json({
+                    data: {
+                        path: newPath.path,
+                        requireauth: newPath.requireauth,
+                        todos: []
+                    }
+                })
+            }
         } catch (createPathQueryError) {
             res.status(500)
             const error = new Error(createPathQueryError.message)
@@ -235,15 +223,22 @@ exports.createPathOrUpdatePassword = async (req, res, next) => {
     if (currentPath) {
         if (!currentPath.requireauth) {
             // update path to requireauth = true and set new password
-            if (requireauth && password) {
+            if (requireauth && (!password || password.length > 64)) {
+                res.status(400)
+                const error = new Error('Bad Request')
+                next(error)
+                return
+            }
+
+            if (requireauth && (password && password.length < 65)) {
                 const userPassword = await generateEncryptedPassword(password)
 
                 const updatePathQuery = {
                     text: 'UPDATE paths SET requireauth = $1, password = $2 WHERE path = $3',
-                    values: [true, userPassword, path]
+                    values: [true, userPassword, currentPath.path]
                 }
 
-                const accessToken = await generateJWT(path)
+                const accessToken = await generateJWT(currentPath.path)
 
                 try {
                     await pool.query(updatePathQuery)
@@ -268,27 +263,11 @@ exports.createPathOrUpdatePassword = async (req, res, next) => {
 
 
         if (currentPath.requireauth) {
-            if (!accessToken) {
-                res.status(401)
-                const error = new Error('Unauthorized')
-                next(error)
-                return
-            }
-
-            const isValidAcessToken = await verifyJWT(accessToken, currentPath.path)
-
-            if (!isValidAcessToken) {
-                res.status(403)
-                const error = new Error('Forbidden')
-                next(error)
-                return
-            }
-
             // turn off requireauth
-            if (requireauth === false) {
+            if (!requireauth) {
                 const updateQuery = {
                     text: 'UPDATE paths SET requireauth = $1, password = $2 WHERE path = $3',
-                    values: [false, null, path]
+                    values: [false, null, currentPath.path]
                 }
 
                 try {
@@ -303,14 +282,15 @@ exports.createPathOrUpdatePassword = async (req, res, next) => {
             }
 
             // update password
-            else if (password && requireauth) {
+            else if (requireauth && (password && password.length < 65)) {
                 const userPassword = await generateEncryptedPassword(password)
+
                 const updatePasswordQuery = {
                     text: 'UPDATE paths set requireauth = $1, password = $2 WHERE path = $3',
-                    values: [true, userPassword, path]
+                    values: [true, userPassword, req.auth.path]
                 }
 
-                const accessToken = await generateJWT(path)
+                const accessToken = await generateJWT(req.auth.path)
 
                 try {
                     await pool.query(updatePasswordQuery)
@@ -328,9 +308,13 @@ exports.createPathOrUpdatePassword = async (req, res, next) => {
                 }
             }
 
-            res.status(204)
-            res.end()
-            return
+            // probably bad request body
+            else {
+                res.status(400)
+                const error = new Error('Bad Request')
+                next(error)
+                return
+            }
         }
     }
 }
@@ -342,8 +326,6 @@ exports.createPathOrUpdatePassword = async (req, res, next) => {
 //          accessToken?<string>
 //          completed?<boolean>
 exports.createPathAndTodoOrCreateTodo = async (req, res, next) => {
-    const path = req.params.path || null
-    const accessToken = req.body.accessToken || null
     const { text = null, completed = false } = req.body
     const currentPath = req.currentPath
 
@@ -403,24 +385,6 @@ exports.createPathAndTodoOrCreateTodo = async (req, res, next) => {
 
     // if path already exist add todo to path
     if (currentPath) {
-        if (currentPath.requireauth) {
-            if (!accessToken) {
-                res.status(401)
-                const error = new Error('Unauthorized')
-                next(error)
-                return
-            }
-
-            const isValidAccessToken = await verifyJWT(accessToken, currentPath.path)
-
-            if (!isValidAccessToken) {
-                res.status(403)
-                const error = new Error('Forbidden')
-                next(error)
-                return
-            }
-        }
-
         const insertQuery = {
             text: 'INSERT INTO todos(path_id, text, completed) VALUES ($1, $2, $3) RETURNING *',
             values: [currentPath.path, text, completed]
@@ -453,12 +417,11 @@ exports.createPathAndTodoOrCreateTodo = async (req, res, next) => {
 exports.updateTodo = async (req, res, next) => {
     const currentTodo = req.currentTodo
     const currentPath = req.currentPath
-    const path = req.params.path
-    const { accessToken, completed } = req.body
+    const { completed } = req.body
 
     if (!currentPath) {
         res.status(400)
-        const error = new Error('Bad Requst')
+        const error = new Error('Bad Request')
         next(error)
         return
     }
@@ -467,24 +430,6 @@ exports.updateTodo = async (req, res, next) => {
         res.status(204)
         res.end()
         return
-    }
-
-    if (currentPath.requireauth) {
-        if (!accessToken) {
-            res.status(401)
-            const error = new Error('Unauthorized')
-            next(error)
-            return
-        }
-
-        const isValidAccessToken = await verifyJWT(accessToken, currentPath.path)
-
-        if (!isValidAccessToken) {
-            res.status(403)
-            const error = new Error('Forbidden')
-            next(error)
-            return
-        }
     }
 
     const updateTodoQuery = {
@@ -509,9 +454,8 @@ exports.updateTodo = async (req, res, next) => {
 // @access  Public/Private
 exports.deleteTodo = async (req, res, next) => {
     const currentTodo = req.currentTodo
-    const currentPath = req.currentPath
 
-    if (!currentPath) {
+    if (!currentTodo) {
         res.status(400)
         const error = new Error('Bad Request')
         next(error)
@@ -525,10 +469,10 @@ exports.deleteTodo = async (req, res, next) => {
 
     try {
         await pool.query(deleteTodoQuery)
-        res.json({ message: 'Operation successful' })
+        return res.json({ message: 'Operation successful' })
     } catch (deleteTodoQueryError) {
         res.status(500)
-        const error = new Error(deleteTodoQueryError)
+        const error = new Error(deleteTodoQueryError.message)
         next(error)
         return
     }
@@ -545,24 +489,6 @@ exports.deletePath = async (req, res, next) => {
         const error = new Error('Bad Request')
         next(error)
         return
-    }
-
-    if (currentPath.requireauth) {
-        if (!accessToken) {
-            res.status(401)
-            const error = new Error('Unauthorized')
-            next(error)
-            return
-        }
-
-        const isValidAccessToken = await verifyJWT(accessToken, currentPath.path)
-
-        if (!isValidAccessToken) {
-            res.status(403)
-            const error = new Error('Forbidden')
-            next(error)
-            return
-        }
     }
 
     const deleteTodosQuery = {

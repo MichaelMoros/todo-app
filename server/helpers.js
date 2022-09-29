@@ -11,16 +11,6 @@ const generateJWT = (path) => {
     }
 }
 
-const verifyJWT = async (token, path) => {
-    try {
-        const decoded = await jwt.verify(token, process.env.JWT_SECRET)
-        if (decoded?.path === path) return true
-        else false
-    } catch (error) {
-        return false
-    }
-}
-
 const generateEncryptedPassword = async (password) => {
     try {
         const result = await bcrypt.hash(password, 10)
@@ -41,7 +31,6 @@ const verifyEncryptedPassword = async (password, storedPassword) => {
 
 module.exports = {
     generateJWT,
-    verifyJWT,
     generateEncryptedPassword,
     verifyEncryptedPassword
 }
